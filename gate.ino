@@ -113,16 +113,18 @@ void loop() {
       if( gate_start || rec_start ) {
         mode = MODE_RECORDING;
         loop_time = 1;
+        last_gate_start = 0;
         setBuffer( 0, gate );
       }
 
       break;
     case MODE_RECORDING:
 
+      uint16_t dt = loop_time - last_gate_start;
+
       if( rec_start ) {
         if( gate ) {
           length = last_gate_start;
-          uint16_t dt = loop_time - last_gate_start;
           if( dt < length ) {
             loop_time = dt;
           } else {
@@ -132,8 +134,17 @@ void loop() {
           length = loop_time;
           loop_time = 0;
         }
+        looping = true;
         mode = MODE_PLAY;
         setGate( getBuffer( loop_time ) );
+        break;
+      }
+
+      if( dt > 3000 ) {
+        length = loop_time;
+        looping = false;
+        mode = MODE_PLAY;
+        setGate( false );
         break;
       }
 
@@ -142,6 +153,7 @@ void loop() {
       }
 
       setGate( gate );
+      setLED( !gate );
       setBuffer( loop_time, gate );
       loop_time += 1;
 
