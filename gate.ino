@@ -60,8 +60,31 @@ void setLED( bool val ) {
   }
 }
 
-bool last_gate = 0;
-bool last_rec = 0;
+class ButtonState {
+  bool last;
+  uint8_t bounce;
+  public:
+    ButtonState() : last(false), bounce(0) {}
+    bool update( int pin, bool * clicked ) {
+      *clicked = false;
+      if( bounce ) {
+        bounce = bounce - 1;
+        return this->last;
+      }
+      bool newVal = !digitalRead(pin);
+      if( newVal != this->last ) {
+        if( newVal ) {
+          *clicked = true;
+        }
+        this->bounce = 10;
+      }
+      this->last = newVal;
+      return newVal;
+    }
+};
+
+ButtonState gateButton;
+ButtonState recButton;
 
 uint16_t last_gate_start = 0;
 
@@ -75,13 +98,11 @@ void loop() {
   }
   last_t = t;
 
-  bool gate = !digitalRead(GATE_IN);
-  bool gate_start = gate && !last_gate;
-  last_gate = gate;
+  bool gate_start;
+  bool gate = gateButton.update(GATE_IN, &gate_start);
 
-  bool rec = !digitalRead(REC_BUTTON);
-  bool rec_start = rec && !last_rec;
-  last_rec = rec;
+  bool rec_start;
+  bool rec = recButton.update(REC_BUTTON, &rec_start);
 
   switch( mode ) {
     case MODE_PLAY:
